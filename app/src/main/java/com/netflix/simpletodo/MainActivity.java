@@ -1,5 +1,6 @@
 package com.netflix.simpletodo;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 import android.view.View;
@@ -14,10 +15,14 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 
+import static org.apache.commons.io.FileUtils.writeLines;
+
 public class MainActivity extends AppCompatActivity {
     ArrayList<String> items;
     ArrayAdapter<String> itemsAdapter;
     ListView lvItems;
+
+    private final int REQUEST_EDIT_CODE = 25;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -33,6 +38,18 @@ public class MainActivity extends AppCompatActivity {
         setupListViewListener();
     }
 
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        if (resultCode == RESULT_OK && requestCode == REQUEST_EDIT_CODE) {
+            String todoText = data.getExtras().getString("todoText", "");
+            int todoPosition = data.getExtras().getInt("todoPosition", 0);
+
+            items.set(todoPosition, todoText);
+            itemsAdapter.notifyDataSetChanged();
+            writeItems();
+        }
+    }
+
     private void setupListViewListener() {
         lvItems.setOnItemLongClickListener(new AdapterView.OnItemLongClickListener() {
 
@@ -44,6 +61,19 @@ public class MainActivity extends AppCompatActivity {
                 return true;
             }
         });
+
+        lvItems.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                Intent i = new Intent(MainActivity.this, EditItemActivity.class);
+                String todoText = items.get(position);
+
+                i.putExtra("todoPosition", position);
+                i.putExtra("todoText", todoText);
+
+                startActivityForResult(i, REQUEST_EDIT_CODE);
+            }
+        });
     }
 
     private void readItems() {
@@ -51,9 +81,9 @@ public class MainActivity extends AppCompatActivity {
         File todoFile = new File(filesDir, "todo.txt");
 
         try {
-            items = new ArrayList<String>(FileUtils.readLines(todoFile));
+            items = new ArrayList<>(FileUtils.readLines(todoFile));
         } catch(IOException e) {
-            items = new ArrayList<String>();
+            items = new ArrayList<>();
         }
     }
 
@@ -62,7 +92,7 @@ public class MainActivity extends AppCompatActivity {
         File todoFile = new File(filesDir, "todo.txt");
 
         try {
-            FileUtils.writeLines(todoFile, items);
+            writeLines(todoFile, items);
         } catch(IOException e) {
             e.printStackTrace();
         }
@@ -77,3 +107,5 @@ public class MainActivity extends AppCompatActivity {
         writeItems();
     }
 }
+
+
